@@ -23,7 +23,7 @@ class ParaphraseRanker:
     def __init__(self, device='cpu'):
         self.device = device
 
-    def load(self, model_dir):
+    def load(self, model_dir=None):
         if model_dir is None:
             model_dir = str(pathlib.Path(__file__).resolve().parent)
 
@@ -36,7 +36,7 @@ class ParaphraseRanker:
         self.bert_tokenizer = transformers.BertTokenizer.from_pretrained(self.cfg['bert_model_name'], do_lower_case=False)
         self.bert_model = transformers.BertModel.from_pretrained(self.cfg['bert_model_name'])
 
-        self.bert_model.to(device)
+        self.bert_model.to(self.device)
         self.bert_model.eval()
 
         computed_params = {'sent_emb_size': self.cfg['sent_emb_size'],
@@ -46,8 +46,8 @@ class ParaphraseRanker:
         self.max_len = self.cfg['max_len']
         self.pad_token_id = self.bert_tokenizer.pad_token_id
 
-        self.model = SynonymyDetector(computed_params).to(device)
-        self.model.load_state_dict(torch.load(weights_path, map_location=device))
+        self.model = SynonymyDetector(computed_params).to(self.device)
+        self.model.load_state_dict(torch.load(weights_path, map_location=self.device))
 
     def tokenize(self, text):
         tx = self.bert_tokenizer.encode(text)
@@ -62,10 +62,9 @@ class ParaphraseRanker:
     def check_pair(self, phrase1, phrase2):
         tokenized_pair = []
         for sent in [phrase1, phrase2]:
-            tokenized_pair.append(torch.tensor(self.tokenize(sent)))
+            tokenized_pair.append(torch.tensor(self.tokenize(sent)).unsqueeze(0).to(self.device))
 
-        y = self.model(torch.tensor(tokenized_pair[0]).unsqueeze(0).to(device),
-                       torch.tensor(tokenized_pair[1]).unsqueeze(0).to(device))[0].item()
+        y = self.model(tokenized_pair[0], tokenized_pair[1])[0].item()
         return y
 
     def rerank(self, phrase1, paraphrases):
@@ -78,7 +77,8 @@ class ParaphraseRanker:
             x1[i, :] = tokenized_phrase1
             x2[i, :] = self.tokenize(phrase2)
 
-        ys = self.model(torch.tensor(x1).to(device), torch.tensor(x2).to(device)).numpy()
+        ys = self.model(torch.tensor(x1, dtype=np.long).to(self.device),
+                        torch.tensor(x2, dtype=np.long).to(self.device)).detach().numpy().squeeze()
         paraphrases2 = sorted(zip(paraphrases, ys), key=lambda z: -z[1])
         return paraphrases2
 

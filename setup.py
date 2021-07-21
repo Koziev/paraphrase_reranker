@@ -3,7 +3,7 @@ import setuptools
 
 setuptools.setup(
     name="paraphrase_reranker",
-    version="0.0.1",
+    version="0.0.5",
     author="Ilya Koziev",
     author_email="inkoziev@gmail.com",
     description="Paraphrase detection and reranking",
