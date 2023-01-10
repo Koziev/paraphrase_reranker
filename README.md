@@ -12,4 +12,4 @@
 
 ## Использование
 
-Готовая модель и описание способа ее использования [находятся на haggingface](https://huggingface.co/inkoziev/sbert_synonymy).
+Готовая модель и описание способа ее использования [находятся на huggingface](https://huggingface.co/inkoziev/sbert_synonymy).
